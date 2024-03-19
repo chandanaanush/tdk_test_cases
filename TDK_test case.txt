@@ -1,0 +1,86 @@
+1. Create pipeline for the above business case to support end-end.
+
+STEP 1 -> Create Source and Destination S3 Buckets:
+
+Create two S3 buckets: one as the source bucket (tdk-test-1) and the other as the destination bucket (tdk-test-2).
+
+STEP 2 -> Loading Data from Dump to tdk-test-1
+
+STEP 3 -> AWS Lambda Function we can use it.
+It will trigger the Job and move to another Bucket.
+
+Event & Copy CODE ->
+import boto3
+
+def lambda_handler(event, context):
+    # Extract source bucket and object key from the S3 event
+    source_bucket = event['Records'][0]['s3']['bucket']['name']
+    object_key = event['Records'][0]['s3']['object']['key']
+
+    # Specify the destination bucket
+    destination_bucket = 'tdk-test-2'
+
+    # Initialize the S3 client
+    s3_client = boto3.client('s3')
+
+    # Copy object from source bucket to destination bucket
+    copy_source = {
+        'Bucket': source_bucket,
+        'Key': object_key
+    }
+    destination_key = object_key  # You can change the destination key if needed
+    s3_client.copy_object(
+        CopySource=copy_source,
+        Bucket=destination_bucket,
+        Key=destination_key
+    )
+
+    print(f"Object '{object_key}' copied from '{source_bucket}' to '{destination_bucket}'.")
+
+    # Optional: You can return a response if needed
+    return {
+        'statusCode': 200,
+        'body': 'Copy job completed successfully.'
+    }
+
+Data is moved from tdk-test-1 TO tdk-test-2.
+
+STEP 4 -> ETL (Extract Transform Load ) Process,
+It will Extract the Data from tdk-test-2, transfer and then loaded to Oracle DB.
+
+By Above steps,we can set up an end-to-end pipeline using AWS services to copy data from one S3 bucket to another using a Lambda function triggered by AWS CodePipeline.
+
+
+STEP 5 -> Once the Data is loaded to Oracle DB using using below query we can fletch the data for following questions :-
+
+1. How many users are there?
+
+SELECT COUNT(*) AS user_count
+FROM users;
+
+2. Every user has made how many requests?
+
+SELECT u.user_id, u.username, COUNT(r.request_id) AS request_count
+FROM users u
+JOIN requests r ON u.user_id = r.user_id
+GROUP BY u.user_id, u.username
+ORDER BY request_count DESC;
+
+3. Display total number of successful request?
+
+SELECT COUNT(*) AS successful_request_count
+FROM requests
+WHERE status = 'SUCCESS';
+
+
+
+
+
+
+
+
+
+
+
+
+
